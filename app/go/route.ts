@@ -9,8 +9,10 @@ export const dynamic = 'force-dynamic';
 const DEFAULT_PATH = '/calculator.html';
 
 export async function GET(req: NextRequest) {
+  // Use `||` (not `??`) so an empty-string DESTINATION_URL also falls back to
+  // the bundled calculator instead of redirecting to "" (i.e. the site root).
   const destination =
-    process.env.DESTINATION_URL ?? new URL(DEFAULT_PATH, req.nextUrl.origin).toString();
+    process.env.DESTINATION_URL || new URL(DEFAULT_PATH, req.nextUrl.origin).toString();
 
   const h = req.headers;
   const event: ScanEvent = {
