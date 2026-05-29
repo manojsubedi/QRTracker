@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>해외송금 비용 절감 계산기</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f5f6f8;color:#1a1a2e;min-height:100%;display:flex;justify-content:center;align-items:flex-start}
+.app{width:100%;max-width:480px;min-height:100vh;background:#fff;display:flex;flex-direction:column}
+
+/* Header */
+.header{padding:13px 18px 11px;display:flex;align-items:center;gap:10px;min-height:52px;border-bottom:1px solid #f0f0f0;position:sticky;top:0;background:#fff;z-index:10}
+.btn-back{width:36px;height:36px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;color:#444;font-size:20px;transition:background .15s;flex-shrink:0}
+.btn-back:hover{background:#f0f0f0}
+.progress-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
+.progress-label{font-size:12px;color:#888;font-weight:500;text-align:right}
+.progress-bar-bg{height:4px;background:#eee;border-radius:2px;overflow:hidden}
+.progress-bar-fill{height:100%;background:#cc232a;border-radius:2px;transition:width .35s ease}
+
+/* Content */
+.content{flex:1;padding:26px 20px 40px;display:flex;flex-direction:column}
+.screen{display:none;flex-direction:column;flex:1}
+.screen.active{display:flex}
+.step-title{font-size:21px;font-weight:700;color:#1a1a2e;line-height:1.4;margin-bottom:22px}
+.spacer{flex:1;min-height:12px}
+
+/* Currency Type Step */
+.cur-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cur-type-btn{padding:28px 12px 22px;border:2px solid #e8e8e8;border-radius:16px;background:#fff;cursor:pointer;text-align:center;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:5px;color:#cc232a;}
+.cur-type-btn:hover{border-color:#cc232a;background:#fff5f5}
+.cur-type-btn.selected{border-color:#cc232a;background:#cc232a;color:#fff}
+.ctype-name{font-size:26px;font-weight:800;letter-spacing:-1px}
+.ctype-tag{font-size:11px;font-weight:700;background:rgba(0,0,0,.07);border-radius:20px;padding:3px 10px;margin-top:2px}
+.cur-type-btn.selected .ctype-tag{background:rgba(255,255,255,.2);color:#fff}
+.ctype-desc{font-size:11px;color:#888;line-height:1.5;margin-top:4px}
+.cur-type-btn.selected .ctype-desc{color:rgba(255,255,255,.8)}
+
+/* Country search (USD) */
+.country-search{width:100%;padding:12px 16px;border:2px solid #e8e8e8;border-radius:12px;font-size:14px;outline:none;margin-bottom:10px;font-family:inherit;color:#1a1a2e}
+.country-search:focus{border-color:#cc232a}
+.usd-list{border:1px solid #f0f0f0;border-radius:12px;overflow-y:auto;max-height:350px}
+.usd-item{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid #f5f5f5;transition:background .1s}
+.usd-item:last-child{border-bottom:none}
+.usd-item:hover{background:#fff5f5}
+.usd-item.selected{background:#cc232a}
+.usd-item.selected .usd-item-name{color:#fff}
+.usd-item.selected .usd-check{opacity:1;color:#fff}
+.usd-flag{font-size:20px;flex-shrink:0}
+.usd-item-name{font-size:14px;font-weight:600;color:#333;flex:1}
+.usd-check{font-size:15px;color:#cc232a;opacity:0;flex-shrink:0}
+.no-result{padding:20px;text-align:center;color:#aaa;font-size:13px}
+
+/* Country grid (LCY) */
+.country-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.country-btn{padding:11px 6px;border:2px solid #e8e8e8;border-radius:12px;background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:#333;text-align:center;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:68px;justify-content:center;line-height:1.3}
+.country-btn .flag{font-size:22px}
+.country-btn:hover{border-color:#cc232a;background:#fff5f5}
+.country-btn.selected{border-color:#cc232a;background:#cc232a;color:#fff}
+
+/* Count */
+.count-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.count-btn{padding:15px 10px;border:2px solid #e8e8e8;border-radius:14px;background:#fff;cursor:pointer;font-size:14px;font-weight:700;color:#333;text-align:center;transition:all .15s}
+.count-btn:hover{border-color:#cc232a;background:#fff5f5}
+.count-btn.selected{border-color:#cc232a;background:#cc232a;color:#fff}
+
+/* Inputs */
+.input-section{margin-bottom:18px}
+.input-label{font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:7px;display:block}
+.input-row{display:flex;align-items:center;border:2px solid #e8e8e8;border-radius:13px;overflow:hidden;transition:border-color .2s,background .2s}
+.input-row:focus-within{border-color:#cc232a}
+.input-row.has-value{border-color:#22c55e;background:#f0fdf4}
+.input-row.has-value .input-unit{color:#16a34a}
+.input-row input{flex:1;border:none;outline:none;padding:14px 12px;font-size:18px;font-weight:700;color:#1a1a2e;background:transparent;text-align:right;min-width:0}
+.input-row input::placeholder{color:#ccc;font-weight:400;font-size:14px}
+.input-unit{padding:14px 12px 14px 4px;font-size:13px;font-weight:600;color:#888;flex-shrink:0;transition:color .2s}
+.input-hint{font-size:11px;color:#999;margin-top:6px;line-height:1.6}
+.input-error{font-size:12px;color:#cc232a;margin-top:5px;display:none}
+.input-error.show{display:block}
+
+/* Primary Btn */
+.btn-primary{width:100%;padding:16px;background:#cc232a;color:#fff;border:none;border-radius:13px;font-size:16px;font-weight:700;cursor:pointer;margin-top:auto;transition:background .15s,transform .1s}
+.btn-primary:hover{background:#b01e24}
+.btn-primary:active{transform:scale(.98)}
+
+/* Start */
+.start-icon{width:66px;height:66px;background:linear-gradient(135deg,#cc232a,#e84b52);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:22px;box-shadow:0 8px 24px rgba(204,35,42,.25)}
+.start-title{font-size:24px;font-weight:800;color:#1a1a2e;line-height:1.35;margin-bottom:13px}
+.start-desc{font-size:14px;color:#666;line-height:1.7;margin-bottom:20px}
+.badge-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+.badge{background:#fff5f5;color:#cc232a;border:1px solid #ffd0d2;border-radius:20px;padding:5px 11px;font-size:12px;font-weight:600}
+.rate-status{display:inline-flex;align-items:center;gap:6px;background:#f5f6f8;border:1px solid #e8e8e8;border-radius:20px;padding:6px 12px;font-size:12px;color:#666;margin-bottom:24px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#ccc;flex-shrink:0}
+.status-dot.live{background:#22c55e}
+.status-dot.loading{background:#f59e0b;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.admin-link{margin-top:14px;text-align:center;color:#d5d5d5;font-size:12px;cursor:pointer;padding:8px;transition:color .15s;user-select:none}
+.admin-link:hover{color:#aaa}
+
+/* Result */
+.result-hero{background:linear-gradient(135deg,#cc232a 0%,#e84b52 100%);border-radius:18px;padding:24px 20px;text-align:center;color:#fff;margin-bottom:14px;box-shadow:0 8px 24px rgba(204,35,42,.25)}
+.result-hero-label{font-size:13px;font-weight:600;opacity:.9;margin-bottom:6px;letter-spacing:.3px}
+.result-hero-amount{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1;margin-bottom:5px}
+.result-hero-sub{font-size:12px;opacity:.8}
+
+/* Comparison Table */
+.compare-wrap{border-radius:14px;overflow:hidden;border:1px solid #e8e8e8;margin-bottom:8px}
+.cmp-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.cmp-table thead th{padding:10px 6px;font-size:11px;font-weight:700;text-align:center}
+.col-item{text-align:left !important;padding-left:10px !important;width:34%;background:#fff;color:#aaa;font-size:10px;letter-spacing:.3px}
+.col-bank{background:#f4f4f4;color:#777;width:33%}
+.col-us{background:#cc232a;color:#fff;width:33%}
+.col-us-crown{font-size:11px;display:block;opacity:.85;margin-bottom:1px}
+.cmp-table tbody td{padding:9px 6px;font-size:12px;text-align:center;border-bottom:1px solid #f0f0f0;color:#666;vertical-align:middle;line-height:1.4}
+.cmp-table tbody tr:last-child td{border-bottom:none}
+.cmp-table tbody td:first-child{text-align:left;padding-left:10px;font-size:11px;color:#999;font-weight:500}
+.cmp-table td.us{background:#fff8f8;font-weight:700;color:#333}
+.col-sub{font-size:10px;color:#bbb;display:block}
+.cval{display:block;font-weight:600}
+.badge-no{display:block;font-size:10px;color:#bbb;margin-top:2px}
+.badge-yes{display:block;font-size:10px;color:#cc232a;font-weight:700;margin-top:2px}
+.save-row td{background:#fff5f5 !important}
+.save-row td:first-child{color:#cc232a;font-weight:700;font-size:11px}
+.save-row .dash{color:#ddd}
+.save-row td.us{color:#cc232a !important;font-size:14px !important;font-weight:800 !important;background:#ffecec !important}
+
+/* Saving highlight banner */
+.saving-banner{border-radius:12px;background:linear-gradient(135deg,#cc232a,#e84b52);color:#fff;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.saving-banner-icon{font-size:28px;flex-shrink:0}
+.saving-banner-text{flex:1}
+.saving-banner-label{font-size:11px;font-weight:600;opacity:.85;margin-bottom:2px}
+.saving-banner-value{font-size:22px;font-weight:800;letter-spacing:-0.5px;line-height:1}
+.saving-banner-sub{font-size:11px;opacity:.8;margin-top:2px}
+
+/* Cost bar comparison */
+.bar-compare-wrap{border-radius:12px;border:1px solid #f0f0f0;background:#fafafa;padding:14px 14px 10px;margin-bottom:12px}
+.bar-compare-title{font-size:11px;font-weight:700;color:#aaa;letter-spacing:.3px;text-transform:uppercase;margin-bottom:10px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bar-row:last-child{margin-bottom:0}
+.bar-label{font-size:11px;font-weight:600;color:#888;width:44px;flex-shrink:0;text-align:right}
+.bar-label.ours{color:#cc232a}
+.bar-track{flex:1;height:26px;background:#efefef;border-radius:7px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:7px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;transition:width .6s ease}
+.bar-fill.bank{background:#d0d0d0}
+.bar-fill.ours{background:linear-gradient(90deg,#cc232a,#e84b52)}
+.bar-amount{font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
+.bar-amount.outside{color:#999;padding-left:6px;font-size:10px}
+
+.result-msg{font-size:13px;color:#555;line-height:1.7;text-align:center;margin-bottom:14px;padding:0 4px;white-space:pre-line}
+.result-msg.neutral{color:#888}
+.btn-cta{width:100%;padding:18px;background:#cc232a;color:#fff;border:none;border-radius:15px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;transition:background .15s,transform .1s}
+.btn-cta:hover{background:#b01e24}
+.btn-cta:active{transform:scale(.98)}
+.btn-reset{width:100%;padding:13px;background:transparent;color:#888;border:2px solid #e8e8e8;border-radius:13px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:16px;transition:all .15s}
+.btn-reset:hover{border-color:#ccc;color:#555}
+.disclaimer{font-size:11px;color:#bbb;text-align:center;line-height:1.6}
+
+/* PIN */
+.pin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:300;opacity:0;pointer-events:none;transition:opacity .2s}
+.pin-overlay.show{opacity:1;pointer-events:all}
+.pin-box{background:#fff;border-radius:24px;padding:30px 26px 24px;width:min(330px,calc(100vw - 40px));text-align:center;transform:scale(.9);transition:transform .25s}
+.pin-overlay.show .pin-box{transform:scale(1)}
+.pin-title{font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:5px}
+.pin-desc{font-size:13px;color:#888;margin-bottom:22px}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:6px}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid #ddd;background:transparent;transition:all .15s}
+.pin-dot.filled{background:#cc232a;border-color:#cc232a}
+.pin-error{font-size:12px;color:#cc232a;min-height:18px;margin-bottom:14px}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:10px}
+.pin-key{padding:15px;border:none;background:#f5f5f5;border-radius:12px;font-size:20px;font-weight:600;color:#1a1a2e;cursor:pointer;transition:background .1s,transform .1s}
+.pin-key:active{background:#e8e8e8;transform:scale(.94)}
+.pin-key.zero{grid-column:2}
+.pin-key.del{background:transparent;font-size:15px;color:#888}
+.btn-pin-cancel{width:100%;padding:11px;background:none;border:none;color:#aaa;font-size:14px;cursor:pointer}
+
+/* Admin */
+.admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px}
+.admin-overlay.show{display:flex}
+.admin-box{background:#fff;border-radius:20px;width:100%;max-width:480px;display:flex;flex-direction:column;max-height:calc(100vh - 32px);overflow:hidden}
+.admin-header{padding:16px 16px 12px;border-bottom:1px solid #eee;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.admin-header-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.admin-header-desc{font-size:11px;color:#888;line-height:1.5}
+.admin-last-updated{display:inline-block;margin-top:5px;font-size:11px;color:#22c55e;font-weight:600}
+.btn-admin-close{width:28px;height:28px;border:none;background:#f0f0f0;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.admin-scroll{flex:1;overflow-y:auto;overflow-x:auto}
+.admin-table{width:100%;border-collapse:collapse;min-width:300px}
+.admin-table thead{position:sticky;top:0;background:#fff;z-index:1}
+.admin-table thead th{font-size:10px;font-weight:600;color:#888;text-align:center;padding:8px 6px;border-bottom:2px solid #eee;white-space:nowrap;line-height:1.4}
+.admin-table thead th:first-child{text-align:left;padding-left:14px}
+.admin-table tbody tr{border-bottom:1px solid #f5f5f5}
+.admin-table tbody tr:hover{background:#fafafa}
+.admin-table tbody td{padding:7px 5px;text-align:center;vertical-align:middle}
+.admin-table tbody td:first-child{padding-left:14px;text-align:left}
+.cur-code{font-size:12px;font-weight:700;color:#333;display:block}
+.cur-spread{font-size:10px;color:#aaa;display:block;margin-top:1px}
+.mid-input{width:90px;padding:7px 8px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;font-weight:600;color:#1a1a2e;text-align:right;outline:none;transition:border-color .15s}
+.mid-input:focus{border-color:#cc232a}
+.auto-val{font-size:11px;font-weight:700;color:#555;display:block}
+.auto-val.ours{color:#4a65cc}
+.admin-footer{padding:11px 14px;border-top:1px solid #eee;display:flex;gap:8px}
+.btn-admin-reset{flex:1;padding:11px;background:#f5f5f5;color:#666;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-admin-save{flex:2;padding:11px;background:#cc232a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-admin-save:hover{background:#b01e24}
+.btn-admin-save:disabled{background:#e8a0a3;cursor:not-allowed}
+.save-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none}
+.save-spinner.show{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Toast */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:400;transition:transform .3s ease,opacity .3s;opacity:0;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* CTA Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal-box{background:#fff;border-radius:24px 24px 0 0;padding:30px 26px 38px;width:100%;max-width:480px;text-align:center;transform:translateY(100%);transition:transform .3s ease}
+.modal-overlay.show .modal-box{transform:translateY(0)}
+.modal-icon{font-size:46px;margin-bottom:14px}
+.modal-title{font-size:18px;font-weight:800;color:#1a1a2e;margin-bottom:11px}
+.modal-desc{font-size:14px;color:#555;line-height:1.7;margin-bottom:26px}
+.btn-modal-close{width:100%;padding:15px;background:#1a1a2e;color:#fff;border:none;border-radius:13px;font-size:15px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header" id="header" style="display:none">
+    <button class="btn-back" onclick="goBack()">&#8592;</button>
+    <div class="progress-wrap">
+      <div class="progress-label" id="progressLabel">1 / 4</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:25%"></div></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- S0: Start -->
+    <div class="screen active" id="screen-0">
+      <div class="start-icon">💸</div>
+      <div class="start-title">해외송금 비용,<br>얼마나 아낄 수 있을까요?</div>
+      <div class="start-desc">기존 송금 비용을 입력하면 우리 서비스 이용 시 예상 절감액을 바로 확인할 수 있어요.</div>
+      <div class="badge-row">
+        <span class="badge">🌏 전 세계 지원</span>
+        <span class="badge">⚡ 즉시 계산</span>
+      </div>
+      <div class="rate-status" id="rateStatus">
+        <span class="status-dot loading" id="statusDot"></span>
+        <span id="statusText">환율 정보 불러오는 중...</span>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn-primary" id="btnStart" onclick="goTo(1)" disabled>절감액 계산하기 →</button>
+      <div class="admin-link" onclick="openPIN()">⚙ 관리자 설정</div>
+    </div>
+
+    <!-- S1: Currency Type -->
+    <div class="screen" id="screen-1">
+      <div class="step-title">어떤 통화로<br>송금하시나요?</div>
+      <div class="cur-type-grid">
+        <button id="btnUSD" class="cur-type-btn" onclick="selectCurrencyType('USD')">
+          <div class="ctype-name">USD</div>
+          <div class="ctype-tag">달러 송금</div>
+          <div class="ctype-desc">SWIFT 국제송금<br>전 세계 지원</div>
+        </button>
+        <button id="btnLCY" class="cur-type-btn" onclick="selectCurrencyType('LCY')">
+          <div class="ctype-name">LCY</div>
+          <div class="ctype-tag">현지통화 송금</div>
+          <div class="ctype-desc">현지 통화 직접 송금<br>18개국 지원</div>
+        </button>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn-primary" onclick="nextFromCurrencyType()">다음</button>
+    </div>
+
+    <!-- S2: Country -->
+    <div class="screen" id="screen-2">
+      <div class="step-title">송금 국가를<br>선택해 주세요.</div>
+      <div id="countryStepContent"></div>
+      <div class="spacer"></div>
+      <button class="btn-primary" onclick="nextFromCountry()">다음</button>
+    </div>
+
+    <!-- S3: Count -->
+    <div class="screen" id="screen-3">
+      <div class="step-title">월 평균 몇 번<br>송금하시나요?</div>
+      <div class="count-grid" id="countGrid"></div>
+      <div class="spacer"></div>
+      <button class="btn-primary" onclick="nextFromCount()">다음</button>
+    </div>
+
+    <!-- S4: Amount + Fee -->
+    <div class="screen" id="screen-4">
+      <div class="step-title">송금 정보를<br>입력해 주세요.</div>
+      <div class="input-section">
+        <label class="input-label" for="sendAmountInput">1회 송금 금액</label>
+        <div class="input-row" id="rowAmount">
+          <input type="text" id="sendAmountInput" inputmode="numeric" placeholder="0" oninput="onNumInput(this,'amountError')">
+          <span class="input-unit" id="currencyUnit">USD</span>
+        </div>
+        <p class="input-hint">한 번에 보내는 금액을 현지 통화로 입력해 주세요.</p>
+        <p class="input-error" id="amountError">송금 금액을 입력해 주세요.</p>
+      </div>
+      <div class="input-section">
+        <label class="input-label" for="feeInput">기존 거래당 수수료 (원화)</label>
+        <div class="input-row" id="rowFee">
+          <input type="text" id="feeInput" inputmode="numeric" placeholder="0" oninput="onNumInput(this)">
+          <span class="input-unit">원</span>
+        </div>
+        <p class="input-hint">은행 수수료, 중개 수수료, 수취 수수료 등 총합을 입력해 주세요. 모르시면 0으로 두셔도 됩니다.</p>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn-primary" onclick="nextFromCost()">결과 확인하기</button>
+    </div>
+
+    <!-- S5: Result -->
+    <div class="screen" id="screen-5">
+      <div class="step-title">예상 절감액을<br>확인해 보세요.</div>
+      <div class="result-hero">
+        <div class="result-hero-label" id="heroLabel">–</div>
+        <div class="result-hero-amount" id="heroAmount">–</div>
+        <div class="result-hero-sub" id="heroSub"></div>
+      </div>
+      <div id="compareTableWrap"></div>
+      <p class="result-msg" id="resultMsg"></p>
+      <button class="btn-cta" onclick="showCTA()">서비스 소개받고 커피 쿠폰 받아가기 ☕</button>
+      <button class="btn-reset" onclick="reset()">↺ 처음부터 다시 계산하기</button>
+      <p class="disclaimer">본 결과는 입력하신 비용을 기준으로 계산한 예상 금액이며, 실제 거래 조건에 따라 달라질 수 있습니다.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- PIN -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-box">
+    <div class="pin-title">🔐 관리자 인증</div>
+    <div class="pin-desc">PIN 번호를 입력해 주세요.</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+      <div class="pin-dot" id="d4"></div><div class="pin-dot" id="d5"></div>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+    <div class="pin-grid">
+      <button class="pin-key" onclick="pinInput('1')">1</button><button class="pin-key" onclick="pinInput('2')">2</button><button class="pin-key" onclick="pinInput('3')">3</button>
+      <button class="pin-key" onclick="pinInput('4')">4</button><button class="pin-key" onclick="pinInput('5')">5</button><button class="pin-key" onclick="pinInput('6')">6</button>
+      <button class="pin-key" onclick="pinInput('7')">7</button><button class="pin-key" onclick="pinInput('8')">8</button><button class="pin-key" onclick="pinInput('9')">9</button>
+      <button class="pin-key zero" onclick="pinInput('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <button class="btn-pin-cancel" onclick="closePIN()">취소</button>
+  </div>
+</div>
+
+<!-- Admin -->
+<div class="admin-overlay" id="adminOverlay">
+  <div class="admin-box">
+    <div class="admin-header">
+      <div>
+        <div class="admin-header-title">⚙ 기준환율 설정</div>
+        <div class="admin-header-desc">기준환율(매매기준율)을 입력하면 시중은행·우리 서비스 환율이 자동 계산됩니다.<br>저장하면 모든 접속자에게 즉시 반영됩니다.</div>
+        <span class="admin-last-updated" id="adminLastUpdated"></span>
+      </div>
+      <button class="btn-admin-close" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="admin-scroll">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding-left:14px">통화 / 스프레드</th>
+            <th>기준환율 (원)</th>
+            <th>시중은행 (자동)</th>
+            <th>우리 서비스 (자동)</th>
+          </tr>
+        </thead>
+        <tbody id="rateTableBody"></tbody>
+      </table>
+    </div>
+    <div class="admin-footer">
+      <button class="btn-admin-reset" onclick="resetAdminRates()">기본값</button>
+      <button class="btn-admin-save" id="btnAdminSave" onclick="saveAdmin()">
+        <span class="save-spinner" id="saveSpinner"></span>
+        <span id="saveLabel">저장하기 (전체 반영)</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="modal-overlay" id="ctaModal">
+  <div class="modal-box">
+    <div class="modal-icon">☕</div>
+    <div class="modal-title">이 화면을 부스 담당자에게<br>보여주세요.</div>
+    <div class="modal-desc">서비스 소개 후<br>커피 쿠폰을 드립니다.</div>
+    <button class="btn-modal-close" onclick="closeCTA()">확인</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══ CONSTANTS ═══ */
+const LCY_FEE=5000, USD_FEE=27000, PREF_RATE=0.5, TOTAL_STEPS=4;
+const PIN_CODE='160830';
+const JSONBIN_API_KEY='$2a$10$b2ah4jwRhmTiIh5FHp8YgOjjkIVkw55unIac7SPfPcb/5oGFfptZi';
+const JSONBIN_BIN_ID='6a169d1cf47d5c455c3c0088';
+
+const TT_SPREAD={
+  USD:0.0098,EUR:0.0100,HKD:0.0100,VND:0.0088,
+  THB:0.0100,PHP:0.0098,SGD:0.0100,CAD:0.0100,
+  MYR:0.0100,IDR:0.0095,INR:0.0115,NPR:0.0112,
+  AUD:0.0100,GBP:0.0100,MXN:0.0099,JPY:0.0098,
+  CNY:0.0100,MNT:0.0099,
+};
+const DEFAULT_MID={
+  USD:1330,EUR:1450,HKD:170,VND:0.050,
+  THB:36.0,PHP:22.0,SGD:990,CAD:960,
+  MYR:290,IDR:0.082,INR:15.8,NPR:9.7,
+  AUD:855,GBP:1710,MXN:65.0,JPY:9.0,
+  CNY:182,MNT:0.375,
+};
+
+// LCY 지원 국가 (현지통화 직접 송금)
+const LCY_COUNTRIES=[
+  {name:"미국",      flag:"🇺🇸",isUSA:true, currency:"USD"},
+  {name:"유럽(SEPA)",flag:"🇪🇺",isUSA:false,currency:"EUR"},
+  {name:"홍콩",      flag:"🇭🇰",isUSA:false,currency:"HKD"},
+  {name:"베트남",    flag:"🇻🇳",isUSA:false,currency:"VND"},
+  {name:"태국",      flag:"🇹🇭",isUSA:false,currency:"THB"},
+  {name:"필리핀",    flag:"🇵🇭",isUSA:false,currency:"PHP"},
+  {name:"싱가포르",  flag:"🇸🇬",isUSA:false,currency:"SGD"},
+  {name:"캐나다",    flag:"🇨🇦",isUSA:false,currency:"CAD"},
+  {name:"말레이시아",flag:"🇲🇾",isUSA:false,currency:"MYR"},
+  {name:"인도네시아",flag:"🇮🇩",isUSA:false,currency:"IDR"},
+  {name:"인도",      flag:"🇮🇳",isUSA:false,currency:"INR"},
+  {name:"네팔",      flag:"🇳🇵",isUSA:false,currency:"NPR"},
+  {name:"호주",      flag:"🇦🇺",isUSA:false,currency:"AUD"},
+  {name:"영국",      flag:"🇬🇧",isUSA:false,currency:"GBP"},
+  {name:"멕시코",    flag:"🇲🇽",isUSA:false,currency:"MXN"},
+  {name:"일본",      flag:"🇯🇵",isUSA:false,currency:"JPY"},
+  {name:"중국",      flag:"🇨🇳",isUSA:false,currency:"CNY"},
+  {name:"몽골",      flag:"🇲🇳",isUSA:false,currency:"MNT"},
+];
+
+// USD SWIFT 송금 가능 국가 (검색용)
+const USD_COUNTRIES=[
+  // 아시아
+  {name:"대한민국",    flag:"🇰🇷"},{name:"일본",        flag:"🇯🇵"},
+  {name:"중국",        flag:"🇨🇳"},{name:"홍콩",        flag:"🇭🇰"},
+  {name:"대만",        flag:"🇹🇼"},{name:"싱가포르",    flag:"🇸🇬"},
+  {name:"태국",        flag:"🇹🇭"},{name:"베트남",      flag:"🇻🇳"},
+  {name:"필리핀",      flag:"🇵🇭"},{name:"말레이시아",  flag:"🇲🇾"},
+  {name:"인도네시아",  flag:"🇮🇩"},{name:"인도",        flag:"🇮🇳"},
+  {name:"방글라데시",  flag:"🇧🇩"},{name:"파키스탄",    flag:"🇵🇰"},
+  {name:"스리랑카",    flag:"🇱🇰"},{name:"네팔",        flag:"🇳🇵"},
+  {name:"미얀마",      flag:"🇲🇲"},{name:"캄보디아",    flag:"🇰🇭"},
+  {name:"몽골",        flag:"🇲🇳"},{name:"카자흐스탄",  flag:"🇰🇿"},
+  {name:"우즈베키스탄",flag:"🇺🇿"},{name:"키르기스스탄",flag:"🇰🇬"},
+  // 중동
+  {name:"UAE",         flag:"🇦🇪"},{name:"사우디아라비아",flag:"🇸🇦"},
+  {name:"카타르",      flag:"🇶🇦"},{name:"쿠웨이트",    flag:"🇰🇼"},
+  {name:"바레인",      flag:"🇧🇭"},{name:"오만",        flag:"🇴🇲"},
+  {name:"이스라엘",    flag:"🇮🇱"},{name:"튀르키예",    flag:"🇹🇷"},
+  {name:"요르단",      flag:"🇯🇴"},{name:"이집트",      flag:"🇪🇬"},
+  // 북미
+  {name:"미국",        flag:"🇺🇸",isUSA:true},
+  {name:"캐나다",      flag:"🇨🇦"},{name:"멕시코",      flag:"🇲🇽"},
+  // 유럽
+  {name:"영국",        flag:"🇬🇧"},{name:"독일",        flag:"🇩🇪"},
+  {name:"프랑스",      flag:"🇫🇷"},{name:"이탈리아",    flag:"🇮🇹"},
+  {name:"스페인",      flag:"🇪🇸"},{name:"네덜란드",    flag:"🇳🇱"},
+  {name:"벨기에",      flag:"🇧🇪"},{name:"스위스",      flag:"🇨🇭"},
+  {name:"오스트리아",  flag:"🇦🇹"},{name:"스웨덴",      flag:"🇸🇪"},
+  {name:"노르웨이",    flag:"🇳🇴"},{name:"덴마크",      flag:"🇩🇰"},
+  {name:"핀란드",      flag:"🇫🇮"},{name:"폴란드",      flag:"🇵🇱"},
+  {name:"포르투갈",    flag:"🇵🇹"},{name:"체코",        flag:"🇨🇿"},
+  {name:"헝가리",      flag:"🇭🇺"},{name:"루마니아",    flag:"🇷🇴"},
+  {name:"그리스",      flag:"🇬🇷"},{name:"아일랜드",    flag:"🇮🇪"},
+  {name:"크로아티아",  flag:"🇭🇷"},{name:"불가리아",    flag:"🇧🇬"},
+  {name:"에스토니아",  flag:"🇪🇪"},{name:"라트비아",    flag:"🇱🇻"},
+  {name:"리투아니아",  flag:"🇱🇹"},{name:"슬로바키아",  flag:"🇸🇰"},
+  {name:"슬로베니아",  flag:"🇸🇮"},{name:"룩셈부르크",  flag:"🇱🇺"},
+  {name:"유럽(SEPA)", flag:"🇪🇺"},
+  // 남미
+  {name:"브라질",      flag:"🇧🇷"},{name:"아르헨티나",  flag:"🇦🇷"},
+  {name:"칠레",        flag:"🇨🇱"},{name:"콜롬비아",    flag:"🇨🇴"},
+  {name:"페루",        flag:"🇵🇪"},{name:"우루과이",    flag:"🇺🇾"},
+  {name:"에콰도르",    flag:"🇪🇨"},{name:"볼리비아",    flag:"🇧🇴"},
+  // 아프리카
+  {name:"남아프리카공화국",flag:"🇿🇦"},{name:"나이지리아",  flag:"🇳🇬"},
+  {name:"케냐",        flag:"🇰🇪"},{name:"가나",        flag:"🇬🇭"},
+  {name:"에티오피아",  flag:"🇪🇹"},{name:"탄자니아",    flag:"🇹🇿"},
+  {name:"우간다",      flag:"🇺🇬"},{name:"모로코",      flag:"🇲🇦"},
+  {name:"튀니지",      flag:"🇹🇳"},{name:"세네갈",      flag:"🇸🇳"},
+  // 오세아니아
+  {name:"호주",        flag:"🇦🇺"},{name:"뉴질랜드",    flag:"🇳🇿"},
+  {name:"파푸아뉴기니",flag:"🇵🇬"},
+];
+
+const transferCounts=[
+  {label:"월 1회",value:1},{label:"월 2회",value:2},{label:"월 3회",value:3},
+  {label:"월 4회",value:4},{label:"월 5회",value:5},{label:"월 10회 이상",value:10},
+];
+const currencyNames={
+  USD:"미국 달러",EUR:"유로",HKD:"홍콩 달러",VND:"베트남 동",
+  THB:"태국 바트",PHP:"필리핀 페소",SGD:"싱가포르 달러",CAD:"캐나다 달러",
+  MYR:"말레이시아 링깃",IDR:"인도네시아 루피아",INR:"인도 루피",NPR:"네팔 루피",
+  AUD:"호주 달러",GBP:"영국 파운드",MXN:"멕시코 페소",
+  JPY:"일본 엔",CNY:"중국 위안",MNT:"몽골 투그릭",
+};
+const allCurrencies=[...new Set(LCY_COUNTRIES.map(c=>c.currency))];
+
+/* ═══ STATE ═══ */
+let midRates={...DEFAULT_MID};
+let usdSearchQuery='';
+let state={currencyType:null,countryObj:null,currency:null,isUSA:false,count:null,sendAmount:0,fee:0};
+let currentStep=0;
+
+/* ═══ STORAGE ═══ */
+async function loadRatesFromStorage(){
+  const notCfg=!JSONBIN_BIN_ID||JSONBIN_BIN_ID.includes('YOUR');
+  if(notCfg){setStatus('default','기본 환율 적용 중');return;}
+  setStatus('loading','환율 정보 불러오는 중...');
+  try{
+    const res=await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY}});
+    if(!res.ok)throw new Error();
+    const payload=(await res.json()).record;
+    if(payload?.rates){
+      midRates={...DEFAULT_MID,...payload.rates};
+      const ts=payload.updatedAt?formatTimestamp(payload.updatedAt):null;
+      setStatus('live',ts?`관리자 설정 환율 적용 중 (${ts} 기준)`:'관리자 설정 환율 적용 중');
+      return;
+    }
+  }catch(e){}
+  setStatus('default','기본 환율 적용 중');
+}
+async function saveRatesToStorage(){
+  const payload={rates:midRates,updatedAt:new Date().toISOString()};
+  const res=await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+    body:JSON.stringify(payload)
+  });
+  if(!res.ok)throw new Error('save failed');
+}
+function setStatus(type,text){
+  const dot=document.getElementById('statusDot');
+  const span=document.getElementById('statusText');
+  const btn=document.getElementById('btnStart');
+  dot.className='status-dot';
+  if(type==='live')dot.classList.add('live');
+  if(type==='loading')dot.classList.add('loading');
+  span.textContent=text;
+  btn.disabled=(type==='loading');
+}
+function formatTimestamp(iso){
+  try{const d=new Date(iso),p=n=>String(n).padStart(2,'0');return`${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+  catch(e){return null;}
+}
+
+/* ═══ RATES ═══ */
+function getMarketRate(c){return midRates[c]*(1+TT_SPREAD[c]);}
+function getOurRate(c){return midRates[c]*(1+TT_SPREAD[c]*PREF_RATE);}
+
+/* ═══ UTILITY ═══ */
+function formatKRW(n){return Math.round(n).toLocaleString("ko-KR")+"원";}
+function formatRate(n){
+  if(!n)return"0";
+  if(n>=1000)return n.toLocaleString("ko-KR",{maximumFractionDigits:0});
+  if(n>=10)return n.toFixed(1);
+  if(n>=1)return n.toFixed(2);
+  if(n>=0.1)return n.toFixed(3);
+  return n.toFixed(4);
+}
+
+/* ═══ CALCULATION ═══ */
+function calculateSavings({currency,count,sendAmount,existingFee,isUSA}){
+  const ourFee=(currency==="USD"&&!isUSA)?USD_FEE:LCY_FEE;
+  const mktRate=getMarketRate(currency);
+  const ourRate=getOurRate(currency);
+  const fxSavePU=mktRate-ourRate;
+  const fxSaveTotal=Math.max(0,sendAmount*fxSavePU);
+  const existingTotal=sendAmount*mktRate+existingFee;
+  const ourTotal=sendAmount*ourRate+ourFee;
+  const savingsPerTx=Math.max(0,existingTotal-ourTotal);
+  const monthlySave=savingsPerTx*count;
+  const yearlySave=monthlySave*12;
+  const rateVal=existingTotal>0?Math.max(0,Math.round((existingTotal-ourTotal)/existingTotal*100)):0;
+  return{mktRate,ourRate,fxSavePU,fxSaveTotal,ourFee,existingTotal,ourTotal,savingsPerTx,monthlySave,yearlySave,rateVal};
+}
+
+/* ═══ NAVIGATION ═══ */
+function showStep(n){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(`screen-${n}`).classList.add("active");
+  currentStep=n;
+  const hdr=document.getElementById("header");
+  if(n===0){hdr.style.display="none";}
+  else{
+    hdr.style.display="flex";
+    const s=Math.min(n,TOTAL_STEPS);
+    document.getElementById("progressLabel").textContent=`${s} / ${TOTAL_STEPS}`;
+    document.getElementById("progressFill").style.width=`${s/TOTAL_STEPS*100}%`;
+  }
+  if(n===2)renderCountryStep();
+  window.scrollTo(0,0);
+}
+function goTo(n){showStep(n);}
+function goBack(){
+  if(currentStep===2){state.countryObj=null;usdSearchQuery='';}
+  showStep(currentStep>0?currentStep-1:0);
+}
+function reset(){
+  state={currencyType:null,countryObj:null,currency:null,isUSA:false,count:null,sendAmount:0,fee:0};
+  usdSearchQuery='';
+  document.getElementById('sendAmountInput').value='';
+  document.getElementById('feeInput').value='';
+  document.getElementById('amountError').classList.remove('show');
+  document.getElementById('rowAmount').classList.remove('has-value');
+  document.getElementById('rowFee').classList.remove('has-value');
+  document.getElementById('btnUSD').classList.remove('selected');
+  document.getElementById('btnLCY').classList.remove('selected');
+  renderCountGrid();
+  showStep(0);
+}
+
+/* ═══ STEP 1: Currency Type ═══ */
+function selectCurrencyType(type){
+  state.currencyType=type;
+  document.getElementById('btnUSD').classList.toggle('selected',type==='USD');
+  document.getElementById('btnLCY').classList.toggle('selected',type==='LCY');
+}
+function nextFromCurrencyType(){
+  if(!state.currencyType){alert("송금 통화를 선택해 주세요.");return;}
+  showStep(2);
+}
+
+/* ═══ STEP 2: Country ═══ */
+function renderCountryStep(){
+  const content=document.getElementById('countryStepContent');
+  if(!content)return;
+  if(state.currencyType==='USD'){
+    const q=usdSearchQuery.trim();
+    const filtered=q?USD_COUNTRIES.filter(c=>c.name.includes(q)):USD_COUNTRIES;
+    content.innerHTML=`
+      <input type="text" class="country-search" placeholder="🔍 국가명 검색 (예: 미국, 일본)" 
+        value="${q}" oninput="filterUSDCountries(this.value)">
+      <div class="usd-list" id="usdList">
+        ${renderUSDItems(filtered)}
+      </div>`;
+  }else{
+    content.innerHTML=`<div class="country-grid">${LCY_COUNTRIES.map((c,i)=>`
+      <button class="country-btn${state.countryObj?.name===c.name?' selected':''}" onclick="selectLCYCountry(${i})">
+        <span class="flag">${c.flag}</span><span>${c.name}</span>
+      </button>`).join('')}</div>`;
+  }
+}
+function renderUSDItems(filtered){
+  if(!filtered.length)return'<div class="no-result">검색 결과가 없습니다.</div>';
+  return filtered.map(c=>{
+    const idx=USD_COUNTRIES.indexOf(c);
+    const sel=state.countryObj?.name===c.name;
+    return`<div class="usd-item${sel?' selected':''}" onclick="selectUSDCountry(${idx},this)">
+      <span class="usd-flag">${c.flag}</span>
+      <span class="usd-item-name">${c.name}</span>
+      <span class="usd-check">✓</span>
+    </div>`;
+  }).join('');
+}
+function filterUSDCountries(q){
+  usdSearchQuery=q;
+  const list=document.getElementById('usdList');
+  if(!list)return;
+  const filtered=q?USD_COUNTRIES.filter(c=>c.name.includes(q)):USD_COUNTRIES;
+  list.innerHTML=renderUSDItems(filtered);
+}
+function selectUSDCountry(idx,el){
+  state.countryObj=USD_COUNTRIES[idx];
+  document.querySelectorAll('.usd-item').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function selectLCYCountry(idx){
+  state.countryObj=LCY_COUNTRIES[idx];
+  document.querySelectorAll('.country-btn').forEach((b,i)=>b.classList.toggle('selected',i===idx));
+}
+function nextFromCountry(){
+  if(!state.countryObj){alert("국가를 선택해 주세요.");return;}
+  state.currency=state.currencyType==='USD'?'USD':state.countryObj.currency;
+  state.isUSA=state.countryObj.isUSA||false;
+  document.getElementById('currencyUnit').textContent=state.currency;
+  renderCountGrid();
+  showStep(3);
+}
+
+/* ═══ STEP 3: Count ═══ */
+function renderCountGrid(){
+  document.getElementById("countGrid").innerHTML=transferCounts.map(t=>
+    `<button class="count-btn${state.count===t.value?' selected':''}" onclick="selectCount(${t.value})">${t.label}</button>`).join('');
+}
+function selectCount(v){state.count=v;renderCountGrid();}
+function nextFromCount(){
+  if(state.count===null){alert("월 송금 횟수를 선택해 주세요.");return;}
+  showStep(4);
+}
+
+/* ═══ STEP 4 ═══ */
+function nextFromCost(){
+  const rawAmt=document.getElementById('sendAmountInput').value.replace(/,/g,'');
+  const amt=parseInt(rawAmt);
+  const err=document.getElementById('amountError');
+  if(!rawAmt||isNaN(amt)||amt<=0){err.classList.add('show');return;}
+  err.classList.remove('show');
+  state.sendAmount=amt;
+  state.fee=parseInt(document.getElementById('feeInput').value.replace(/,/g,''))||0;
+  renderResult();
+  showStep(5);
+}
+
+/* ═══ INPUT ═══ */
+function onNumInput(el,errId){
+  const raw=el.value.replace(/[^0-9]/g,'');
+  el.value=raw?parseInt(raw,10).toLocaleString('ko-KR'):'';
+  if(errId)document.getElementById(errId).classList.remove('show');
+  el.closest('.input-row')?.classList.toggle('has-value',raw.length>0);
+}
+
+/* ═══ RESULT ═══ */
+function renderResult(){
+  const res=calculateSavings({
+    currency:state.currency,count:state.count,
+    sendAmount:state.sendAmount,existingFee:state.fee,isUSA:state.isUSA
+  });
+  const cur=state.currency;
+
+  // Hero
+  document.getElementById('heroLabel').textContent=`${state.sendAmount.toLocaleString()} ${cur} 기준`;
+  document.getElementById('heroAmount').textContent=`${formatKRW(res.monthlySave)} 절감 예상`;
+  const heroSub=document.getElementById('heroSub');
+  const msg=document.getElementById('resultMsg');
+  if(res.monthlySave>0){
+    heroSub.textContent=`연간 최대 ${formatKRW(res.yearlySave)} 절감 가능`;
+    msg.textContent=`우리 서비스를 이용하면 매월 약 ${formatKRW(res.monthlySave)}의 송금 비용을 절감할 수 있어요.`;
+    msg.className='result-msg';
+  }else{
+    heroSub.textContent='아래 내용을 확인해 주세요';
+    msg.textContent='입력하신 조건에서는 예상 절감액이 크지 않을 수 있어요.\n정확한 비용은 현장 담당자에게 문의해 주세요.';
+    msg.className='result-msg neutral';
+  }
+
+  // Comparison table
+  const bankMon=res.existingTotal*state.count, bankYear=bankMon*12;
+  const ourMon=res.ourTotal*state.count, ourYear=ourMon*12;
+
+  // Bar chart widths
+  const maxBar=Math.max(bankMon,ourMon)||1;
+  const bankBarW=Math.round(bankMon/maxBar*100);
+  const ourBarW=Math.round(ourMon/maxBar*100);
+  const yearSave=res.monthlySave*12;
+
+  document.getElementById('compareTableWrap').innerHTML=`
+    <div class="compare-wrap">
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th class="col-item">항목</th>
+            <th class="col-bank">시중은행</th>
+            <th class="col-us"><span class="col-us-crown">👑 추천</span>GMEBIZ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>적용 환율</td>
+            <td>
+              <span class="cval">1 ${cur} = ${formatRate(res.mktRate)}원</span>
+              <span class="badge-no">TT송금 환율 우대 ❌</span>
+            </td>
+            <td class="us">
+              <span class="cval">1 ${cur} = ${formatRate(res.ourRate)}원</span>
+              <span class="badge-yes">50% 우대 ✅</span>
+            </td>
+          </tr>
+          <tr>
+            <td>거래당<br>수수료</td>
+            <td>${state.fee>0?formatKRW(state.fee):'–'}</td>
+            <td class="us">${formatKRW(res.ourFee)}</td>
+          </tr>
+          <tr>
+            <td>1회<br>총비용</td>
+            <td>${formatKRW(res.existingTotal)}</td>
+            <td class="us">${formatKRW(res.ourTotal)}</td>
+          </tr>
+          <tr>
+            <td>월 비용<br><span class="col-sub">×${state.count}회</span></td>
+            <td>${formatKRW(bankMon)}</td>
+            <td class="us">${formatKRW(ourMon)}</td>
+          </tr>
+          <tr>
+            <td>연 비용</td>
+            <td>${formatKRW(bankYear)}</td>
+            <td class="us">${formatKRW(ourYear)}</td>
+          </tr>
+          <tr class="save-row">
+            <td>월 절감액</td>
+            <td class="dash">–</td>
+            <td class="us">${formatKRW(res.monthlySave)}</td>
+          </tr>
+          <tr class="save-row">
+            <td>절감률</td>
+            <td class="dash">–</td>
+            <td class="us">${res.rateVal}%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+/* ═══ PIN ═══ */
+let pinVal='';
+function openPIN(){pinVal='';updatePinDots();document.getElementById('pinError').textContent='';document.getElementById('pinOverlay').classList.add('show');}
+function closePIN(){document.getElementById('pinOverlay').classList.remove('show');}
+function pinInput(d){
+  if(pinVal.length>=6)return;
+  pinVal+=d;updatePinDots();
+  if(pinVal.length===6){
+    setTimeout(()=>{
+      if(pinVal===PIN_CODE){closePIN();renderAdminTable();document.getElementById('adminOverlay').classList.add('show');}
+      else{document.getElementById('pinError').textContent='PIN이 올바르지 않습니다.';pinVal='';updatePinDots();}
+    },200);
+  }
+}
+function pinDel(){pinVal=pinVal.slice(0,-1);updatePinDots();document.getElementById('pinError').textContent='';}
+function updatePinDots(){for(let i=0;i<6;i++)document.getElementById(`d${i}`).classList.toggle('filled',i<pinVal.length);}
+
+/* ═══ ADMIN ═══ */
+function updateAdminRow(cur){
+  const mid=parseFloat(document.getElementById(`adm-${cur}`)?.value)||0;
+  const s=TT_SPREAD[cur]||0;
+  const mkt=mid*(1+s),our=mid*(1+s*PREF_RATE);
+  const me=document.getElementById(`adm-mkt-${cur}`),oe=document.getElementById(`adm-our-${cur}`);
+  if(me)me.textContent=formatRate(mkt)+'원';
+  if(oe)oe.textContent=formatRate(our)+'원';
+}
+function renderAdminTable(){
+  const luEl=document.getElementById('adminLastUpdated');
+  if(!JSONBIN_BIN_ID.includes('YOUR')){
+    fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY}})
+      .then(r=>r.json()).then(j=>{const ts=j.record?.updatedAt;if(ts)luEl.textContent=`마지막 저장: ${formatTimestamp(ts)}`;}).catch(()=>{});
+  }
+  document.getElementById('rateTableBody').innerHTML=allCurrencies.map(cur=>{
+    const mid=midRates[cur]||0,s=TT_SPREAD[cur]||0;
+    const mkt=mid*(1+s),our=mid*(1+s*PREF_RATE);
+    return`<tr>
+      <td><span class="cur-code">${cur}</span><span class="cur-spread">스프레드 ${(s*100).toFixed(2)}%</span></td>
+      <td><input class="mid-input" type="number" step="any" min="0" id="adm-${cur}" value="${mid}" oninput="updateAdminRow('${cur}')"></td>
+      <td><span class="auto-val" id="adm-mkt-${cur}">${formatRate(mkt)}원</span></td>
+      <td><span class="auto-val ours" id="adm-our-${cur}">${formatRate(our)}원</span></td>
+    </tr>`;
+  }).join('');
+}
+function closeAdmin(){document.getElementById('adminOverlay').classList.remove('show');}
+async function saveAdmin(){
+  allCurrencies.forEach(cur=>{const v=parseFloat(document.getElementById(`adm-${cur}`)?.value);if(!isNaN(v)&&v>0)midRates[cur]=v;});
+  const btn=document.getElementById('btnAdminSave'),sp=document.getElementById('saveSpinner'),lb=document.getElementById('saveLabel');
+  btn.disabled=true;sp.classList.add('show');lb.textContent='저장 중...';
+  try{
+    await saveRatesToStorage();closeAdmin();
+    setStatus('live',`관리자 설정 환율 적용 중 (${formatTimestamp(new Date().toISOString())} 기준)`);
+    showToast('✅ 저장 완료! 모든 접속자에게 즉시 반영됩니다.');
+  }catch(e){showToast('⚠️ 저장에 실패했습니다. 다시 시도해주세요.');}
+  finally{btn.disabled=false;sp.classList.remove('show');lb.textContent='저장하기 (전체 반영)';}
+}
+function resetAdminRates(){midRates={...DEFAULT_MID};renderAdminTable();showToast('기본값으로 초기화되었습니다.');}
+
+/* ═══ TOAST / CTA ═══ */
+let toastTimer;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3000);}
+function showCTA(){document.getElementById('ctaModal').classList.add('show');}
+function closeCTA(){document.getElementById('ctaModal').classList.remove('show');}
+document.getElementById('ctaModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCTA();});
+
+/* ═══ INIT ═══ */
+(async function(){
+  renderCountGrid();
+  showStep(0);
+  await loadRatesFromStorage();
+})();
+</script>
+</body>
+</html>

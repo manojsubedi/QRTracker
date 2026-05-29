@@ -4,14 +4,13 @@ import { redis, TOTAL_KEY, LIST_KEY, LIST_CAP, type ScanEvent } from '@/lib/redi
 // Always run at request time — never cache a tracking endpoint.
 export const dynamic = 'force-dynamic';
 
+// Where /go sends scanners. Override with the DESTINATION_URL env var;
+// otherwise fall back to the calculator page bundled in /public.
+const DEFAULT_PATH = '/calculator.html';
+
 export async function GET(req: NextRequest) {
-  const destination = process.env.DESTINATION_URL;
-  if (!destination) {
-    return new NextResponse(
-      'Misconfigured: DESTINATION_URL env var is not set.',
-      { status: 500 },
-    );
-  }
+  const destination =
+    process.env.DESTINATION_URL ?? new URL(DEFAULT_PATH, req.nextUrl.origin).toString();
 
   const h = req.headers;
   const event: ScanEvent = {
